@@ -2,9 +2,15 @@
 
 import { existsSync } from 'fs'
 import { readdir, stat } from 'fs/promises'
-import { join, resolve } from 'path'
+import { join, resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { createServer } from 'vite'
 import react from '@vitejs/plugin-react'
+
+// Get the directory where this CLI script is located
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const blockPartyRoot = resolve(__dirname, '..')
 
 interface BlockInfo {
   name: string
@@ -86,32 +92,66 @@ async function startStorybook() {
 
   // Start Vite dev server
   const server = await createServer({
-    root: targetDir,
+    root: resolve(__dirname),
+    resolve: {
+      alias: {
+        'react': resolve(blockPartyRoot, 'node_modules/react'),
+        'react-dom': resolve(blockPartyRoot, 'node_modules/react-dom'),
+        'react/jsx-runtime': resolve(blockPartyRoot, 'node_modules/react/jsx-runtime'),
+        'react/jsx-dev-runtime': resolve(blockPartyRoot, 'node_modules/react/jsx-dev-runtime')
+      }
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
+    },
     plugins: [
-      react(),
       {
         name: 'blockparty-virtual',
+        enforce: 'pre',
         resolveId(id) {
           if (id === '/@blockparty/storybook') {
-            return id
+            return '/@blockparty/storybook.tsx'
           }
         },
         load(id) {
-          if (id === '/@blockparty/storybook') {
+          if (id === '/@blockparty/storybook.tsx') {
             return storybookEntry
           }
         }
-      }
+      },
+      react()
     ],
     server: {
+      fs: {
+        allow: [blockPartyRoot, targetDir]
+      },
+      port: 5173,
+      strictPort: false,
       open: true
     }
   })
 
   await server.listen()
 
+  const urls = server.resolvedUrls
   console.log('🚀 Block Party is running!')
-  console.log(`   Local: ${server.resolvedUrls?.local?.[0] || 'http://localhost:5173'}`)
+
+  if (urls?.local && urls.local.length > 0) {
+    urls.local.forEach(url => {
+      console.log(`   Local:   ${url}`)
+    })
+  }
+
+  if (urls?.network && urls.network.length > 0) {
+    urls.network.forEach(url => {
+      console.log(`   Network: ${url}`)
+    })
+  }
+
+  if (!urls?.local && !urls?.network) {
+    console.log('   http://localhost:5173')
+  }
+
   console.log()
 }
 

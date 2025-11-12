@@ -10,7 +10,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/index.html dist/index.html",
     "dev": "tsc --watch",
     "prepare": "npm run build",
     "cli": "npm run build && node ./dist/cli.js"
