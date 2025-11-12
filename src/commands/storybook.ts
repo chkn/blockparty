@@ -22,7 +22,7 @@ function generateStorybookEntry(blocks: BlockInfo[]): string {
   }`).join(',')
 
   return `
-import { StrictMode, useState, createElement } from 'react'
+import { StrictMode, useState, useEffect, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 
 ${imports}
@@ -30,9 +30,34 @@ ${imports}
 const blocks = [${blockConfigs}
 ]
 
+const STORAGE_KEY = 'blockparty-state'
+
 function App() {
-  const [selectedBlock, setSelectedBlock] = useState(0)
-  const [props, setProps] = useState<any>({})
+  const [selectedBlock, setSelectedBlock] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved ? JSON.parse(saved).selectedBlock ?? 0 : 0
+    } catch {
+      return 0
+    }
+  })
+
+  const [props, setProps] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved ? JSON.parse(saved).props ?? {} : {}
+    } catch {
+      return {}
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ selectedBlock, props }))
+    } catch (e) {
+      console.error('Failed to save state:', e)
+    }
+  }, [selectedBlock, props])
 
   const currentBlock = blocks[selectedBlock]
   const CurrentComponent = currentBlock.Component
