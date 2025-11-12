@@ -52,12 +52,20 @@ async function discoverBlocks(baseDir: string): Promise<BlockInfo[]> {
 }
 
 async function startStorybook() {
-  const cwd = process.cwd()
+  // Get path from command line argument, or use current working directory
+  const pathArg = process.argv[2]
+  const targetDir = pathArg ? resolve(process.cwd(), pathArg) : process.cwd()
+
+  // Verify the directory exists
+  if (!existsSync(targetDir)) {
+    console.error(`❌ Directory not found: ${targetDir}`)
+    process.exit(1)
+  }
 
   console.log('🎉 Starting Block Party...')
-  console.log(`📂 Working directory: ${cwd}\n`)
+  console.log(`📂 Working directory: ${targetDir}\n`)
 
-  const blocks = await discoverBlocks(cwd)
+  const blocks = await discoverBlocks(targetDir)
 
   if (blocks.length === 0) {
     console.error('❌ No Blocks found!')
@@ -78,7 +86,7 @@ async function startStorybook() {
 
   // Start Vite dev server
   const server = await createServer({
-    root: cwd,
+    root: targetDir,
     plugins: [
       react(),
       {

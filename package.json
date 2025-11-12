@@ -12,7 +12,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "cli": "npm run build && node ./dist/cli.js"
   },
   "keywords": [
     "web-components",

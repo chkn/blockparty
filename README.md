@@ -4,7 +4,7 @@ Convention-based web components with optional bridging to native code for use in
 
 ## Hello, World
 
-A component in Block Party is called a Block. A Block is defined by convention, with the simplest Block being an `index.ts` file with an exported `Props` interface and a default exported function that takes the props and returns TSX:
+A component in Block Party is called a Block. A Block is defined by convention, with the simplest Block being an `index.tsx` file with an exported `Props` interface and a default exported function that takes the props and returns TSX:
 
 ```typescript
 export interface Props {
