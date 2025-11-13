@@ -140,10 +140,11 @@ export function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-      <aside style={{ width: '250px', borderRight: '1px solid #ddd', padding: '20px', overflow: 'auto' }}>
-        <h2 style={{ marginTop: 0 }}>🎉 Block Party</h2>
+      {/* Left sidebar - block list */}
+      <aside style={{ width: '200px', borderRight: '1px solid #ddd', padding: '20px', overflow: 'auto' }}>
+        <h2 style={{ marginTop: 0, fontSize: '18px' }}>🎉 Block Party</h2>
 
-        <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#666' }}>Blocks</h3>
+        <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#666', marginTop: '24px' }}>Blocks</h3>
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {blocks.map((block, idx) => (
             <li key={idx}>
@@ -169,23 +170,9 @@ export function App() {
             </li>
           ))}
         </ul>
-
-        {currentBlock.description && (
-          <div style={{ marginTop: '24px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
-            <p style={{ fontSize: '12px', color: '#666', margin: 0, lineHeight: '1.5' }}>
-              {currentBlock.description}
-            </p>
-          </div>
-        )}
-
-        <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#666', marginTop: '32px' }}>Props</h3>
-        <PropsEditor
-          propDefinitions={propDefinitions}
-          props={props}
-          onPropsChange={setProps}
-        />
       </aside>
 
+      {/* Center - component preview */}
       <main style={{ flex: 1, padding: '40px', overflow: 'auto' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <ErrorBoundary key={`${selectedBlock}-${JSON.stringify(props)}`}>
@@ -193,6 +180,26 @@ export function App() {
           </ErrorBoundary>
         </div>
       </main>
+
+      {/* Right sidebar - description and props */}
+      <aside style={{ width: '320px', borderLeft: '1px solid #ddd', padding: '20px', overflow: 'auto', background: '#fafafa' }}>
+        <h3 style={{ marginTop: 0, fontSize: '16px' }}>{currentBlock.name}</h3>
+
+        {currentBlock.description && (
+          <div style={{ marginBottom: '24px', padding: '12px', background: '#fff', borderRadius: '4px', border: '1px solid #e0e0e0' }}>
+            <p style={{ fontSize: '12px', color: '#666', margin: 0, lineHeight: '1.5' }}>
+              {currentBlock.description}
+            </p>
+          </div>
+        )}
+
+        <h4 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#666', marginBottom: '12px' }}>Props</h4>
+        <PropsEditor
+          propDefinitions={propDefinitions}
+          props={props}
+          onPropsChange={setProps}
+        />
+      </aside>
     </div>
   )
 }

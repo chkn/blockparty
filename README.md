@@ -4,7 +4,7 @@ Convention-based web components with optional bridging to native code for use in
 
 ## Hello, World
 
-A component in Block Party is called a Block. A Block is defined by convention, with the simplest Block being an `index.tsx` file with an exported `Props` interface and a default exported function that takes the props and returns a React component:
+A component in Block Party is called a Block. Here is a simple Block:
 
 ```typescript
 export interface Props {
@@ -16,9 +16,10 @@ export default ({ who }: Props) => (
 )
 ```
 
-Run `npx blockparty` to start a storybook where you can see your component and play with entering different values for `who`!
+1. Create a new directory and paste the above into a file called `index.tsx`.
+2. Run `npx blockparty` in that directory to start a storybook where you can see your component and enter different values for `who`.
 
-## Block Metadata
+## Adding Metadata
 
 Each Block can have a `README.md` file in its directory to provide additional metadata. Block Party will extract the name and description from the README in two ways:
 
@@ -28,8 +29,8 @@ Add YAML frontmatter at the top of your README:
 
 ```markdown
 ---
-name: My Component
-description: A brief description of what this component does
+name: Hello Component
+description: Greets whomever is specified.
 ---
 
 # Detailed documentation...
@@ -45,16 +46,16 @@ If frontmatter is not present (or missing the `name` or `description` fields), B
 For example:
 
 ```markdown
-# Big Numbers
+# Hello Component
 
-Display large numerical values with formatting and animations.
+Greets whomever is specified.
 
 ## Usage
 
 ...
 ```
 
-In this case, the name will be "Big Numbers" and the description will be "Display large numerical values with formatting and animations."
+Both of the above will yield the name, "Hello Component" and description, "Greets whomever is specified."
 
 The description will be displayed in the storybook UI when you select the block.
 

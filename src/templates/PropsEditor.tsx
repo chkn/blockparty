@@ -46,8 +46,14 @@ export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEdit
     setJsonMode(prev => ({ ...prev, [propName]: !prev[propName] }))
   }
 
-  const updateProp = (name: string, value: string) => {
-    onPropsChange({ ...props, [name]: value })
+  const updateProp = (name: string, value: string, optional: boolean) => {
+    // If the value is empty and the prop is optional, remove it
+    if (value === '' && optional) {
+      const { [name]: _, ...rest } = props
+      onPropsChange(rest)
+    } else {
+      onPropsChange({ ...props, [name]: value })
+    }
   }
 
   const renderPropEditor = (propDef: PropDefinition) => {
@@ -57,19 +63,10 @@ export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEdit
     if (!isComplex) {
       // Simple type - just render input
       return (
-        <input
-          type="text"
+        <ItemEditor
+          propDef={propDef}
           value={props[propDef.name] || ''}
-          onChange={(e) => updateProp(propDef.name, e.target.value)}
-          style={{
-            width: '100%',
-            padding: '6px 8px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            fontSize: '14px',
-            boxSizing: 'border-box'
-          }}
-          placeholder={`Enter ${propDef.name}`}
+          onChange={(value) => updateProp(propDef.name, value, propDef.optional)}
         />
       )
     }
@@ -80,7 +77,7 @@ export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEdit
         {isJson ? (
           <textarea
             value={props[propDef.name] || ''}
-            onChange={(e) => updateProp(propDef.name, e.target.value)}
+            onChange={(e) => updateProp(propDef.name, e.target.value, propDef.optional)}
             style={{
               width: '100%',
               padding: '6px 8px',
@@ -98,7 +95,7 @@ export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEdit
           <RichEditor
             type={propDef.type}
             value={props[propDef.name] || ''}
-            onChange={(value) => updateProp(propDef.name, value)}
+            onChange={(value) => updateProp(propDef.name, value, propDef.optional)}
             properties={propDef.properties}
           />
         )}
@@ -150,7 +147,7 @@ export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEdit
 interface RichEditorProps {
   type: string
   value: string
-  onChange: (value: string) => void
+  onChange: (value: string, optional: boolean) => void
   properties?: PropDefinition[]
 }
 
@@ -167,21 +164,27 @@ function RichEditor({ type, value, onChange, properties }: RichEditorProps) {
   if (type.includes('[]')) {
     const items = Array.isArray(parsedValue) ? parsedValue : []
     const elementType = type.replace('[]', '').trim()
+    const elementPropDef: PropDefinition = {
+      name: '',
+      type: elementType,
+      optional: false, // FIXME
+      properties
+    }
 
     const addItem = () => {
       const newItems = [...items, getDefaultValue(elementType, false)]
-      onChange(JSON.stringify(newItems))
+      onChange(JSON.stringify(newItems), false)
     }
 
     const removeItem = (index: number) => {
       const newItems = items.filter((_, i) => i !== index)
-      onChange(JSON.stringify(newItems))
+      onChange(JSON.stringify(newItems), items.length === 1)
     }
 
     const updateItem = (index: number, newValue: any) => {
       const newItems = [...items]
       newItems[index] = newValue
-      onChange(JSON.stringify(newItems))
+      onChange(JSON.stringify(newItems), false)
     }
 
     return (
@@ -198,10 +201,9 @@ function RichEditor({ type, value, onChange, properties }: RichEditorProps) {
           <div key={index} style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
             <div style={{ flex: 1 }}>
               <ItemEditor
-                type={elementType}
+                propDef={elementPropDef}
                 value={item}
                 onChange={(newValue) => updateItem(index, newValue)}
-                properties={properties}
               />
             </div>
             <button
@@ -243,7 +245,7 @@ function RichEditor({ type, value, onChange, properties }: RichEditorProps) {
     return (
       <ObjectEditor
         value={value}
-        onChange={onChange}
+        onChange={(v) => onChange(v, false)}
         properties={properties}
       />
     )
@@ -253,7 +255,7 @@ function RichEditor({ type, value, onChange, properties }: RichEditorProps) {
   return (
     <textarea
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value, false)}
       style={{
         width: '100%',
         padding: '6px 8px',
@@ -308,10 +310,9 @@ function ObjectEditor({ value, onChange, properties }: ObjectEditorProps) {
             </span>
           </label>
           <ItemEditor
-            type={prop.type}
+            propDef={prop}
             value={parsedValue[prop.name]}
             onChange={(newValue) => updateField(prop.name, newValue)}
-            properties={prop.properties}
           />
         </div>
       ))}
@@ -320,13 +321,12 @@ function ObjectEditor({ value, onChange, properties }: ObjectEditorProps) {
 }
 
 interface ItemEditorProps {
-  type: string
+  propDef: PropDefinition
   value: any
   onChange: (value: any) => void
-  properties?: PropDefinition[]
 }
 
-function ItemEditor({ type, value, onChange, properties }: ItemEditorProps) {
+function ItemEditor({ value, onChange, propDef: { type, properties, optional} }: ItemEditorProps) {
   // For primitive types
   if (type === 'string') {
     return (
@@ -349,8 +349,16 @@ function ItemEditor({ type, value, onChange, properties }: ItemEditorProps) {
     return (
       <input
         type="number"
-        value={value || 0}
-        onChange={(e) => onChange(Number(e.target.value))}
+        value={value ?? ''}
+        onChange={(e) => {
+          const val = e.target.value
+          // If empty and optional, pass undefined
+          if (val === '' && optional) {
+            onChange(undefined)
+          } else {
+            onChange(val === '' ? 0 : Number(val))
+          }
+        }}
         style={{
           width: '100%',
           padding: '4px 6px',
