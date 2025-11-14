@@ -2,8 +2,8 @@
 
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { startStorybook } from './commands/storybook.js'
-import { buildBlocks } from './commands/build.js'
+import { startStorybookServer } from './commands/storybook.js'
+import { buildStorybook } from './commands/build.js'
 
 async function main() {
   const args = process.argv.slice(2)
@@ -46,9 +46,9 @@ async function main() {
 
   // Run the appropriate command
   if (command === 'storybook') {
-    await startStorybook(resolvedPath)
+    await startStorybookServer(resolvedPath)
   } else if (command === 'build') {
-    await buildBlocks(resolvedPath, outDir ?? 'dist')
+    await buildStorybook(resolvedPath, outDir ?? 'dist')
   }
 }
 

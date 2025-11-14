@@ -6,6 +6,26 @@
   "bin": {
     "blockparty": "./dist/cli.js"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./discover": {
+      "types": "./dist/discoverBlocks.d.ts",
+      "import": "./dist/discoverBlocks.js"
+    },
+    "./storybook": {
+      "types": "./dist/storybook.d.ts",
+      "import": "./dist/storybook.js"
+    },
+    "./build": {
+      "types": "./dist/build.d.ts",
+      "import": "./dist/build.js"
+    }
+  },
   "files": [
     "dist"
   ],

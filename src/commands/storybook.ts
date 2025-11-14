@@ -4,7 +4,7 @@ import { discoverBlocks } from '../discoverBlocks.js'
 import { generateBlocksModule } from '../generateBlocksModule.js'
 import { blockPartyRoot, templatesDir, getViteResolveConfig, getVitePlugins } from '../viteConfig.js'
 
-export async function startStorybook(targetPath: string) {
+export async function startStorybookServer(targetPath: string) {
   console.log('🎉 Starting Block Party...')
   console.log(`📂 Target path: ${targetPath}\n`)
 

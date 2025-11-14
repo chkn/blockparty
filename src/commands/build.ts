@@ -5,7 +5,7 @@ import { discoverBlocks } from '../discoverBlocks.js'
 import { generateBlocksModule } from '../generateBlocksModule.js'
 import { templatesDir, getViteResolveConfig, getVitePlugins } from '../viteConfig.js'
 
-export async function buildBlocks(targetPath: string, outDir: string) {
+export async function buildStorybook(targetPath: string, outDir: string) {
   console.log('🏗️  Building Blocks...')
   console.log(`📂 Target: ${targetPath}`)
   console.log(`📦 Output: ${outDir}\n`)
