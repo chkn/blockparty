@@ -37,8 +37,38 @@ const getDefaultValue = (type: string, optional: boolean) => {
   return ''
 }
 
-const parseValue = (value: string, type: string) => {
+const parseValue = (value: string, type: string, propDefs: PropDefinition[]) => {
   if (!value) return value
+
+  // For React.ReactNode, parse and render the block(s) - always an array
+  if (type === 'React.ReactNode' || type === 'ReactNode') {
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value
+
+      if (Array.isArray(parsed)) {
+        return parsed.map((item, index) => {
+          if (item && typeof item === 'object' && '__block' in item) {
+            const blockName = item.__block
+            const blockProps = item.__props || {}
+            const block = blocks.find(b => b.name === blockName)
+
+            if (block) {
+              const parsedBlockProps = Object.fromEntries(
+                Object.entries(blockProps).map(([key, val]) => {
+                  const propDef = block.propDefinitions.find((p: PropDefinition) => p.name === key)
+                  return [key, propDef ? parseValue(val as string, propDef.type, block.propDefinitions) : val]
+                })
+              )
+              return <block.Component key={index} {...parsedBlockProps} />
+            }
+          }
+          return null
+        }).filter(Boolean)
+      }
+    } catch {
+      // Fall through
+    }
+  }
 
   // For complex types, try to parse as JSON
   if (isComplexType(type)) {
@@ -134,7 +164,7 @@ export function App() {
   const parsedProps = Object.fromEntries(
     Object.entries(props).map(([key, value]) => {
       const propDef = propDefinitions.find((p: PropDefinition) => p.name === key)
-      return [key, propDef ? parseValue(value as string, propDef.type) : value]
+      return [key, propDef ? parseValue(value as string, propDef.type, propDefinitions) : value]
     })
   )
 
@@ -198,6 +228,7 @@ export function App() {
           propDefinitions={propDefinitions}
           props={props}
           onPropsChange={setProps}
+          availableBlocks={blocks}
         />
       </aside>
     </div>

@@ -5,8 +5,15 @@ import { join } from 'path'
 export interface BlockMetadata {
   name?: string
   description?: string
+
+  /** The markdown content of the readme (not including frontmatter) */
+  readme?: string
+
+  /** The metadata from the readme frontmatter */
+  frontmatter?: Record<string, string>
 }
 
+// exported for tests
 export function parseFrontmatter(content: string): { frontmatter: Record<string, string>, content: string } {
   const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/
   const match = content.match(frontmatterRegex)
@@ -34,6 +41,7 @@ export function parseFrontmatter(content: string): { frontmatter: Record<string,
   return { frontmatter, content: remainingContent }
 }
 
+// exported for tests
 export function extractMarkdownMetadata(content: string): BlockMetadata {
   const lines = content.trim().split('\n')
   let name: string | undefined
@@ -86,13 +94,16 @@ export async function parseReadmeMetadata(dirPath: string): Promise<BlockMetadat
     // If name or description is missing from frontmatter, extract from markdown
     if (!name || !description) {
       const markdownMetadata = extractMarkdownMetadata(remainingContent)
-      name = name || markdownMetadata.name
-      description = description || markdownMetadata.description
+      name ??= markdownMetadata.name
+      description ??= markdownMetadata.description
     }
 
-    const result: BlockMetadata = {}
-    if (name) result.name = name
-    if (description) result.description = description
+    const result: BlockMetadata = {
+      name,
+      description,
+      readme: remainingContent,
+      frontmatter
+    }
     return result
   } catch (error) {
     console.error(`Error parsing README.md at ${readmePath}:`, error)

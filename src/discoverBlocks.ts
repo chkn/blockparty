@@ -2,17 +2,25 @@ import { existsSync } from 'fs'
 import { readdir, stat } from 'fs/promises'
 import { join, dirname, basename } from 'path'
 import { extractPropsFromFile, type PropDefinition } from './extractProps.js'
-import { parseReadmeMetadata } from './parseReadme.js'
+import { type BlockMetadata, parseReadmeMetadata } from './parseReadme.js'
 
-export interface BlockInfo {
+export interface BlockInfo extends BlockMetadata {
   name: string
   path: string
-  props: PropDefinition[]
-  description?: string
+  propDefinitions: PropDefinition[]
 }
 
-async function getBlockInfo(blockDir: string, indexPath?: string): Promise<BlockInfo | undefined> {
-  if (!indexPath) {
+async function getBlockInfo(path: string): Promise<BlockInfo | undefined> {
+  let blockDir: string
+  let indexPath: string
+
+  const targetStat = await stat(path)
+  if (targetStat.isFile()) {
+    blockDir = dirname(path)
+    indexPath = path
+  } else {
+    blockDir = path
+
     const indexTsPath = join(blockDir, 'index.ts')
     const indexTsxPath = join(blockDir, 'index.tsx')
     if (existsSync(indexTsxPath)) {
@@ -23,26 +31,22 @@ async function getBlockInfo(blockDir: string, indexPath?: string): Promise<Block
       return undefined
     }
   }
-  const props = await extractPropsFromFile(indexPath)
+  const propDefinitions = await extractPropsFromFile(indexPath)
   const blockName = basename(blockDir)
   const metadata = await parseReadmeMetadata(blockDir)
 
   return {
+    ...metadata,
     name: metadata.name ?? blockName,
     path: indexPath,
-    props,
-    description: metadata.description
+    propDefinitions
   }
 }
 
 export async function discoverBlocks(targetPath: string): Promise<BlockInfo[]> {
   const blocks: BlockInfo[] = []
 
-  const targetStat = await stat(targetPath)
-  const blockDir = targetStat.isFile() ? dirname(targetPath) : targetPath
-  const indexPath = targetStat.isFile() ? targetPath : undefined
-
-  const blockInfo = await getBlockInfo(blockDir, indexPath)
+  const blockInfo = await getBlockInfo(targetPath)
   if (blockInfo) {
     blocks.push(blockInfo)
     return blocks

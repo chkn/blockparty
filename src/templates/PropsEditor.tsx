@@ -1,5 +1,10 @@
 import { useState } from 'react'
 
+interface ReactNodeValue {
+  __block: string  // Block name
+  __props: Record<string, any>  // Props for the block
+}
+
 interface PropDefinition {
   name: string
   type: string
@@ -8,10 +13,18 @@ interface PropDefinition {
   description?: string
 }
 
+export interface RuntimeBlockInfo {
+  name: string
+  description?: string
+  propDefinitions: PropDefinition[]
+  Component: React.ComponentType<any>
+}
+
 interface PropsEditorProps {
   propDefinitions: PropDefinition[]
   props: Record<string, string>
   onPropsChange: (props: Record<string, string>) => void
+  availableBlocks?: RuntimeBlockInfo[]
 }
 
 const isComplexType = (type: string) => {
@@ -69,7 +82,7 @@ const getDefaultValue = (type: string, optional: boolean) => {
   return ''
 }
 
-export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEditorProps) {
+export function PropsEditor({ propDefinitions, props, onPropsChange, availableBlocks = [] }: PropsEditorProps) {
   const [jsonMode, setJsonMode] = useState<Record<string, boolean>>({})
 
   const toggleJsonMode = (propName: string) => {
@@ -97,6 +110,7 @@ export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEdit
           propDef={propDef}
           value={props[propDef.name] || ''}
           onChange={(value) => updateProp(propDef.name, value, propDef.optional)}
+          availableBlocks={availableBlocks}
         />
       )
     }
@@ -127,6 +141,7 @@ export function PropsEditor({ propDefinitions, props, onPropsChange }: PropsEdit
             value={props[propDef.name] || ''}
             onChange={(value) => updateProp(propDef.name, value, propDef.optional)}
             properties={propDef.properties}
+            availableBlocks={availableBlocks}
           />
         )}
       </>
@@ -184,9 +199,10 @@ interface RichEditorProps {
   value: string
   onChange: (value: string, optional: boolean) => void
   properties?: PropDefinition[]
+  availableBlocks?: RuntimeBlockInfo[]
 }
 
-function RichEditor({ type, value, onChange, properties }: RichEditorProps) {
+function RichEditor({ type, value, onChange, properties, availableBlocks = [] }: RichEditorProps) {
   // Parse the current value
   let parsedValue: any
   try {
@@ -239,6 +255,7 @@ function RichEditor({ type, value, onChange, properties }: RichEditorProps) {
                 propDef={elementPropDef}
                 value={item}
                 onChange={(newValue) => updateItem(index, newValue)}
+                availableBlocks={availableBlocks}
               />
             </div>
             <button
@@ -282,6 +299,7 @@ function RichEditor({ type, value, onChange, properties }: RichEditorProps) {
         value={value}
         onChange={(v) => onChange(v, false)}
         properties={properties}
+        availableBlocks={availableBlocks}
       />
     )
   }
@@ -311,9 +329,10 @@ interface ObjectEditorProps {
   value: string
   onChange: (value: string) => void
   properties: PropDefinition[]
+  availableBlocks?: RuntimeBlockInfo[]
 }
 
-function ObjectEditor({ value, onChange, properties }: ObjectEditorProps) {
+function ObjectEditor({ value, onChange, properties, availableBlocks = [] }: ObjectEditorProps) {
   let parsedValue: Record<string, any>
   try {
     parsedValue = value ? JSON.parse(value) : {}
@@ -353,9 +372,188 @@ function ObjectEditor({ value, onChange, properties }: ObjectEditorProps) {
             propDef={prop}
             value={parsedValue[prop.name]}
             onChange={(newValue) => updateField(prop.name, newValue)}
+            availableBlocks={availableBlocks}
           />
         </div>
       ))}
+    </div>
+  )
+}
+
+interface ReactNodeEditorProps {
+  value: any
+  onChange: (value: any) => void
+  optional: boolean
+  availableBlocks: RuntimeBlockInfo[]
+}
+
+function ReactNodeEditor({ value, onChange, optional, availableBlocks }: ReactNodeEditorProps) {
+  const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set([0]))
+
+  // Parse the value - always an array
+  let blocks: ReactNodeValue[] = []
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    if (Array.isArray(parsed)) {
+      blocks = parsed.filter(item => item && typeof item === 'object' && '__block' in item)
+    }
+  } catch {
+    // Invalid value
+  }
+
+  const toggleExpanded = (index: number) => {
+    setExpandedIndices(prev => {
+      const next = new Set(prev)
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
+      return next
+    })
+  }
+
+  const addBlock = () => {
+    const newBlocks = [...blocks, { __block: '', __props: {} }]
+    onChange(newBlocks)
+    setExpandedIndices(prev => new Set([...prev, newBlocks.length - 1]))
+  }
+
+  const removeBlock = (index: number) => {
+    const newBlocks = blocks.filter((_, i) => i !== index)
+    onChange(newBlocks.length === 0 ? (optional ? undefined : []) : newBlocks)
+  }
+
+  const updateBlock = (index: number, blockName: string) => {
+    const newBlocks = [...blocks]
+    newBlocks[index] = {
+      __block: blockName,
+      __props: {}
+    }
+    onChange(newBlocks)
+  }
+
+  const updateBlockProps = (index: number, newProps: Record<string, any>) => {
+    const newBlocks = [...blocks]
+    newBlocks[index] = {
+      ...newBlocks[index],
+      __props: newProps
+    }
+    onChange(newBlocks)
+  }
+
+  return (
+    <div style={{
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      padding: '8px',
+      background: '#fafafa'
+    }}>
+      {blocks.length === 0 && optional && (
+        <div style={{ fontSize: '11px', color: '#999', marginBottom: '8px' }}>
+          No blocks added
+        </div>
+      )}
+
+      {blocks.map((block, index) => {
+        const selectedBlock = availableBlocks.find(b => b.name === block.__block)
+        const isExpanded = expandedIndices.has(index)
+
+        return (
+          <div key={index} style={{
+            marginBottom: '8px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            background: 'white'
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '4px',
+              padding: '6px',
+              alignItems: 'center'
+            }}>
+              <button
+                onClick={() => toggleExpanded(index)}
+                style={{
+                  padding: '2px 6px',
+                  background: '#f0f0f0',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: '10px',
+                  minWidth: '20px'
+                }}
+              >
+                {isExpanded ? '▼' : '▶'}
+              </button>
+
+              <select
+                value={block.__block || ''}
+                onChange={(e) => updateBlock(index, e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '4px 6px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '12px'
+                }}
+              >
+                <option value="">-- Select a block --</option>
+                {availableBlocks.map(b => (
+                  <option key={b.name} value={b.name}>{b.name}</option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => removeBlock(index)}
+                style={{
+                  padding: '4px 8px',
+                  background: '#fee',
+                  border: '1px solid #fcc',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {isExpanded && selectedBlock && (
+              <div style={{
+                padding: '8px',
+                borderTop: '1px solid #ddd'
+              }}>
+                <div style={{ fontSize: '10px', color: '#666', marginBottom: '6px', fontWeight: 500 }}>
+                  Props for {selectedBlock.name}:
+                </div>
+                <PropsEditor
+                  propDefinitions={selectedBlock.propDefinitions}
+                  props={block.__props || {}}
+                  onPropsChange={(newProps) => updateBlockProps(index, newProps)}
+                  availableBlocks={availableBlocks}
+                />
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      <button
+        onClick={addBlock}
+        style={{
+          width: '100%',
+          padding: '6px',
+          background: '#f0f0f0',
+          border: '1px solid #ddd',
+          borderRadius: '3px',
+          cursor: 'pointer',
+          fontSize: '12px',
+          marginTop: blocks.length > 0 ? '4px' : '0'
+        }}
+      >
+        + Add Block
+      </button>
     </div>
   )
 }
@@ -364,9 +562,22 @@ interface ItemEditorProps {
   propDef: PropDefinition
   value: any
   onChange: (value: any) => void
+  availableBlocks?: RuntimeBlockInfo[]
 }
 
-function ItemEditor({ value, onChange, propDef: { type, properties, optional} }: ItemEditorProps) {
+function ItemEditor({ value, onChange, propDef: { type, properties, optional}, availableBlocks = [] }: ItemEditorProps) {
+  // For React.ReactNode, show block selector
+  if (type === 'React.ReactNode' || type === 'ReactNode') {
+    return (
+      <ReactNodeEditor
+        value={value}
+        onChange={onChange}
+        optional={optional}
+        availableBlocks={availableBlocks}
+      />
+    )
+  }
+
   // For string unions, show dropdown
   if (isStringUnion(type)) {
     const options = parseStringUnion(type)
@@ -465,6 +676,7 @@ function ItemEditor({ value, onChange, propDef: { type, properties, optional} }:
           }
         }}
         properties={properties}
+        availableBlocks={availableBlocks}
       />
     )
   }

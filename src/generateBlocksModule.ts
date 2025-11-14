@@ -1,4 +1,5 @@
 import type { BlockInfo } from './discoverBlocks.js'
+import type { RuntimeBlockInfo } from './templates/PropsEditor.js'
 
 export async function generateBlocksModule(blocks: BlockInfo[]): Promise<string> {
   // Generate block imports
@@ -7,12 +8,15 @@ export async function generateBlocksModule(blocks: BlockInfo[]): Promise<string>
   ).join('\n')
 
   // Generate block configs
-  const blockConfigs = blocks.map((block, idx) => `  {
-    name: '${block.name}',
-    Component: Block${idx},
-    propDefinitions: ${JSON.stringify(block.props)},
-    description: ${JSON.stringify(block.description)}
-  }`).join(',\n')
+  const blockConfigs = blocks.map((block, idx) => {
+    const blockInfo: RuntimeBlockInfo = {
+      name: block.name,
+      description: block.description,
+      propDefinitions: block.propDefinitions,
+      Component: null as any  // Placeholder
+    }
+    return JSON.stringify(blockInfo).replace('null', `Block${idx}`)
+  }).join(',\n')
 
   return `${imports}
 
