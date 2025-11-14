@@ -19,12 +19,12 @@
       "import": "./dist/discoverBlocks.js"
     },
     "./storybook": {
-      "types": "./dist/storybook.d.ts",
-      "import": "./dist/storybook.js"
+      "types": "./dist/commands/storybook.d.ts",
+      "import": "./dist/commands/storybook.js"
     },
     "./build": {
-      "types": "./dist/build.d.ts",
-      "import": "./dist/build.js"
+      "types": "./dist/commands/build.d.ts",
+      "import": "./dist/commands/build.js"
     }
   },
   "files": [

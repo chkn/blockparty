@@ -1,5 +1,7 @@
 # Block Party
 
+[![NPM Version](https://img.shields.io/npm/v/blockparty)](https://www.npmjs.com/package/blockparty)
+
 Easy, zero-config, convention-based React components.
 
 ## Hello, World
