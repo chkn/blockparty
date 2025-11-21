@@ -3,15 +3,23 @@
 import { existsSync } from 'fs'
 import { resolve } from 'path'
 import { startStorybookServer } from './commands/storybook.js'
-import { buildStorybook } from './commands/build.js'
+import { buildStorybook, buildBlocks } from './commands/build.js'
 
 async function main() {
   const args = process.argv.slice(2)
 
-  // Parse command and path
+  // Parse command and flags
   let command: string
   let targetPath: string
   let outDir: string | undefined
+  let buildBlocksIndividually = false
+
+  // Handle flags
+  let individuallyIndex = args.indexOf('--individually')
+  if (individuallyIndex !== -1) {
+    buildBlocksIndividually = true
+    args.splice(individuallyIndex, 1)
+  }
 
   if (args.length === 0) {
     // No arguments - default to storybook in current directory
@@ -24,7 +32,7 @@ async function main() {
     outDir = args[2] // Optional output directory for build command
   } else {
     console.error('❌ Unknown command')
-    console.error('Usage: blockparty [storybook|build] [path] [outDir]')
+    console.error('Usage: blockparty [storybook|build] [flags] [path] [outDir]')
     console.error('')
     console.error('Commands:')
     console.error('  storybook  Start storybook dev server (default)')
@@ -33,6 +41,9 @@ async function main() {
     console.error('Arguments:')
     console.error('  path       Path to Block or root directory for Blocks (default: current directory)')
     console.error('  outDir     Output directory for build (default: dist)')
+    console.error('')
+    console.error('Build Flags:')
+    console.error('  --individually  Bundle each block individually')
     process.exit(1)
   }
 
@@ -48,7 +59,14 @@ async function main() {
   if (command === 'storybook') {
     await startStorybookServer(resolvedPath)
   } else if (command === 'build') {
-    await buildStorybook(resolvedPath, outDir ?? 'dist')
+    if (outDir === undefined) {
+      outDir = 'dist'
+    }
+    if (buildBlocksIndividually) {
+      await buildBlocks(resolvedPath, outDir)
+    } else {
+      await buildStorybook(resolvedPath, outDir)
+    }
   }
 }
 
