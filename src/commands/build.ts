@@ -103,12 +103,7 @@ export async function buildBlocks(targetPath: string, outDir: string) {
     console.log(`   Bundling ${dep}...`)
 
     // Get the list of other external deps to keep external
-    // (sort these with subpath imports first to work around https://github.com/esm-dev/esm.sh/issues/698)
-    const otherExternalDeps = externalDeps.filter(d => d !== dep).sort((a, b) => {
-      if (a.includes('/')) return -1
-      if (b.includes('/')) return 1
-      return a.localeCompare(b)
-    })
+    const otherExternalDeps = externalDeps.filter(d => d !== dep)
 
     // Get any subpath imports for this dep
     const subDepEntryPaths: string[] = []
@@ -142,7 +137,11 @@ export async function buildBlocks(targetPath: string, outDir: string) {
       })
 
       // Add to import map
-      importMap[dep] = `https://esm.sh/${dep}@${version}?external=${otherExternalDeps.join(',')}`
+      const external = otherExternalDeps.filter(d => !d.includes('/')).sort().join(',')
+      importMap[dep] = `https://esm.sh/${dep}@${version}?external=${external}`
+
+      // Also include trailing slash version for packages that require it
+      importMap[`${dep}/`] = `https://esm.sh/${dep}@${version}&external=${external}/`
     } catch (error) {
       console.error(`   ❌ Failed to bundle ${dep}:`, error)
       process.exit(1)
