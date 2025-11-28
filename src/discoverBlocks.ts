@@ -52,23 +52,30 @@ export async function discoverBlocks(targetPath: string): Promise<BlockInfo[]> {
     return blocks
   }
 
-  // Check subdirectories for Blocks
+  // Recursively check subdirectories for Blocks
+  await discoverBlocksRecursive(targetPath, blocks)
+
+  return blocks
+}
+
+async function discoverBlocksRecursive(dirPath: string, blocks: BlockInfo[]): Promise<void> {
   try {
-    const entries = await readdir(targetPath, { withFileTypes: true })
+    const entries = await readdir(dirPath, { withFileTypes: true })
 
     for (const entry of entries) {
       if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-        const dirPath = join(targetPath, entry.name)
-        const blockInfo = await getBlockInfo(dirPath)
+        const entryPath = join(dirPath, entry.name)
+        const blockInfo = await getBlockInfo(entryPath)
 
         if (blockInfo) {
           blocks.push(blockInfo)
+        } else {
+          // If this directory is not a block, search its subdirectories
+          await discoverBlocksRecursive(entryPath, blocks)
         }
       }
     }
   } catch (error) {
     console.error('Error reading directory:', error)
   }
-
-  return blocks
 }
