@@ -10,7 +10,7 @@ export interface BlockMetadata {
   readme?: string
 
   /** The metadata from the readme frontmatter */
-  frontmatter?: Record<string, string>
+  metadata?: Record<string, string>
 }
 
 // exported for tests
@@ -102,7 +102,7 @@ export async function parseReadmeMetadata(dirPath: string): Promise<BlockMetadat
       name,
       description,
       readme: remainingContent,
-      frontmatter
+      metadata: frontmatter
     }
     return result
   } catch (error) {

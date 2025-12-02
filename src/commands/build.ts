@@ -150,44 +150,75 @@ export async function buildBlocks(targetPath: string, outDir: string) {
 
   console.log()
 
-  // Write import map
-  await writeFile(
-    resolve(outputDir, 'importmap.json'),
-    JSON.stringify({ imports: importMap }, null, 2)
-  )
-
   console.log('📝 Bundling individual blocks...\n')
 
-  // Build each block individually
+  // Build each block individually and collect block info
+  const blockInfos = []
   for (const block of blocks) {
-    console.log(`   Building ${block.name}...`)
+    const blockId = block.metadata?.id ?? block.name
+    console.log(`   Building ${blockId} ${blockId !== block.name ? `(${block.name}) ` : ''}...`)
 
     // Sanitize block name for filename (replace spaces and special chars)
-    const safeFileName = block.name.replace(/[^a-zA-Z0-9-_]/g, '-')
+    const safeFileName = blockId.replace(/[^a-zA-Z0-9-_]/g, '-')
 
     try {
+      const css: string[] = []
+      const assets: string[] = []
       await viteBuild({
         build: {
           lib: {
             entry: block.path,
             formats: ['es'],
-            fileName: () => `${safeFileName}.js`
+            fileName: 'index'
           },
-          outDir: outputDir,
+          outDir: resolve(outputDir, safeFileName),
           minify: true,
           emptyOutDir: false,
           rollupOptions: {
-            external: externalDeps
+            external: externalDeps,
+            output: {
+              assetFileNames: (assetInfo) => {
+                if (assetInfo.name?.endsWith('.css')) {
+                  css.push(assetInfo.name)
+                } else if (assetInfo.name) {
+                  assets.push(assetInfo.name)
+                }
+                return assetInfo.name ?? 'asset'
+              }
+            }
           }
         },
         plugins: getVitePlugins()
       })
+
+      // Add block info with relative path to built file
+      const blockInfo: any = {
+        name: block.name,
+        description: block.description,
+        metadata: block.metadata,
+        readme: block.readme,
+
+        propDefinitions: block.propDefinitions,
+        js: `./${safeFileName}/index.js`,
+        css,
+        assets
+      }
+
+      blockInfos.push(blockInfo)
     } catch (error) {
       console.error(`   ❌ Failed to build ${block.name}:`, error)
       process.exit(1)
     }
   }
 
+  // Write index.json with blocks and import map
+  await writeFile(
+    resolve(outputDir, 'index.json'),
+    JSON.stringify({
+      blocks: blockInfos,
+      importmap: importMap
+    }, null, 2)
+  )
+
   console.log(`\n✅ Build complete! Output in ${outDir}/`)
-  console.log(`   Import map: ${outDir}/importmap.json`)
 }

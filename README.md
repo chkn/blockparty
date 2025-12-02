@@ -20,17 +20,19 @@ export default ({ who }: Props) => (
 
 Create a new directory and paste the above into a file called `index.tsx`. You've just created your first Block!
 
+## Storybook
+
 ### Run the Storybook
 
 Block Party includes a storybook-style UI for quick previews of your Blocks.
 
-Just run `npx blockparty` in the directory with your Block. The preview will automatically update if changes are made to the Block's source code.
+Just run `npx blockparty` from the directory containing your Block, or from a root directory, where each Block is in a different subdirectory. The preview will automatically update if changes are made to any of the Blocks' source code.
 
 ### Publish the Storybook
 
 You may want to publish a static site build of the storybook UI, for instance during a CI run on a git repo.
 
-To create a static site build of the storybook, run `npx blockparty build` from the root (where each block is in a different subdirectory).
+To create a static site build of the storybook, run `npx blockparty build` from the root.
 
 By default, the output goes into a `dist` directory, but you can specify a different path on the command line. For instance, if you are using GitHub Pages, you may want to put it in the `docs` directory:
 
@@ -99,4 +101,48 @@ export default ({ who, greeting = 'Hello' }: Props) => (
 )
 ```
 
+## Styling
 
+The easiest way to style your Block is to just put styles right in the code:
+
+```typescript
+export interface Props {
+  // .. snip ..
+}
+
+export default ({ who, greeting = 'Hello' }: Props) => {
+  const headingStyle: React.CSSProperties = {
+    fontSize: '24px',
+    color: '#111827',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  }
+  return (
+    <h1 style={headingStyle}>{greeting}, {who}!</h1>
+  )
+}
+```
+
+You can also use a CSS module, which is a CSS file ending in `.module.css`.
+
+```css
+.heading {
+  font-size: 24px;
+  color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+```
+
+For instance, if you name the above `styles.module.css`, you can import it in your code like so:
+
+```typescript
+import styles from './styles.module.css'
+
+export interface Props {
+  // .. snip ..
+}
+
+export default ({ who, greeting = 'Hello' }: Props) => {
+  return (
+    <h1 className={styles.heading}>{greeting}, {who}!</h1>
+  )
+}

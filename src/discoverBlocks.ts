@@ -1,6 +1,6 @@
 import { existsSync } from 'fs'
 import { readdir, stat } from 'fs/promises'
-import { join, dirname, basename } from 'path'
+import { join, dirname, basename, extname } from 'path'
 import { extractPropsFromFile, type PropDefinition } from './extractProps.js'
 import { type BlockMetadata, parseReadmeMetadata } from './parseReadme.js'
 
@@ -12,14 +12,17 @@ export interface BlockInfo extends BlockMetadata {
 
 async function getBlockInfo(path: string): Promise<BlockInfo | undefined> {
   let blockDir: string
+  let blockName: string
   let indexPath: string
 
   const targetStat = await stat(path)
   if (targetStat.isFile()) {
     blockDir = dirname(path)
+    blockName = basename(path, extname(path))
     indexPath = path
   } else {
     blockDir = path
+    blockName = basename(blockDir)
 
     const indexTsPath = join(blockDir, 'index.ts')
     const indexTsxPath = join(blockDir, 'index.tsx')
@@ -32,7 +35,6 @@ async function getBlockInfo(path: string): Promise<BlockInfo | undefined> {
     }
   }
   const propDefinitions = await extractPropsFromFile(indexPath)
-  const blockName = basename(blockDir)
   const metadata = await parseReadmeMetadata(blockDir)
 
   return {
